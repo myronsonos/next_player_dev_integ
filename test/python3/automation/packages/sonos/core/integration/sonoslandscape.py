@@ -1,11 +1,18 @@
 
-from akit.exceptions import AKitConfigurationError
+
+import traceback
+
+import requests
+
+from akit.exceptions import AKitConfigurationError, AKitInitialConnectivityError, AKitMissingResourceError
+
 from akit.integration.landscaping import LandscapeDescription
 from akit.integration.landscaping import Landscape
-
 from akit.integration.agents.upnpagent import UpnpAgent
 
 from akit.networking.interfaces import get_correspondance_interface
+
+from akit.xformatting import indent_lines
 
 class SonosLandscapeDescription(LandscapeDescription):
     """
@@ -23,6 +30,16 @@ class SonosLandscape(Landscape):
     """
 
     landscape_description = SonosLandscapeDescription
+
+    def __init__(self):
+        """
+            This is a Singleton initializer.  It should only initialize variables the first time through.
+        """
+        this_cls = type(self)
+        if not this_cls._initialized:
+            self._expected_device_table = None
+            super(SonosLandscape, self).__init__()
+        return
 
     def initialize(self):
         """
@@ -57,26 +74,8 @@ class SonosLandscape(Landscape):
 
         self._validate_landscape()
 
-        pod_info = self.landscape_info["pod"]
-
-        ref_info = pod_info["reference"]
-
-        ref_ip = ref_info["ip"]
-        ref_port = int(ref_info["port"])
-
-        corr_iface, _ = get_correspondance_interface(ref_ip, ref_port)
-
-        self._upnp_agent = UpnpAgent(interface=corr_iface)
-
-        self._upnp_agent.start()
-        self._upnp_agent.begin_search()
-
-        upnp_hint_list = self.get_upnp_devices()
-
-        self._upnp_agent.wait_for_devices(upnp_hint_list)
-
         return
-    
+
     def _validate_landscape(self):
         """
             This method is overriden in order to validate the info found
