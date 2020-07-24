@@ -55,6 +55,37 @@ class SonosLandscape(Landscape):
         """
         super(SonosLandscape, self).first_contact()
 
+        self._validate_landscape()
+
+        pod_info = self.landscape_info["pod"]
+
+        ref_info = pod_info["reference"]
+
+        ref_ip = ref_info["ip"]
+        ref_port = int(ref_info["port"])
+
+        corr_iface, _ = get_correspondance_interface(ref_ip, ref_port)
+
+        self._upnp_agent = UpnpAgent(interface=corr_iface)
+
+        self._upnp_agent.start()
+        self._upnp_agent.begin_search()
+
+        upnp_hint_list = self.get_upnp_devices()
+
+        self._upnp_agent.wait_for_devices(upnp_hint_list)
+
+        return
+    
+    def _validate_landscape(self):
+        """
+            This method is overriden in order to validate the info found
+            in the landscape file.
+
+            :param linfo: A python dictionary with the information contained in
+                          the landscape.json file.
+            :type linfo:  dict
+        """
         if "pod" not in self.landscape_info:
             raise AKitConfigurationError("The 'testlandscape.py' file requires an 'pod' member.")
 
@@ -65,30 +96,9 @@ class SonosLandscape(Landscape):
 
         ref_info = pod_info["reference"]
 
-        if "ip" not in pod_info:
+        if "ip" not in ref_info:
             raise AKitConfigurationError("The 'testlandscape.py' file 'pod->reference' data requires an 'ip' member.")
-        if "port" not in pod_info:
+        if "port" not in ref_info:
             raise AKitConfigurationError("The 'testlandscape.py' file 'pod->reference' data requires an 'port' member.")
 
-        ref_ip = ref_info["ip"]
-        ref_port = ref_info["port"]
-
-        corr_iface, _ = get_correspondance_interface(ref_ip, ref_port)
-
-        self._upnp_agent = UpnpAgent(interface=corr_iface)
-
-        self._upnp_agent.start()
-        self._upnp_agent.begin_search()
-
-        return
-    
-    def _validate_landscape(self, linfo):
-        """
-            This method is overriden in order to validate the info found
-            in the landscape file.
-
-            :param linfo: A python dictionary with the information contained in
-                          the landscape.json file.
-            :type linfo:  dict
-        """
         return
